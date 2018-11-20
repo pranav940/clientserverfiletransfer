@@ -7,3 +7,5 @@ The client side application gives you 4 options namely -get, -put, -list and -ex
 -exit exits client side application and closes the socket.
 
 All file transfers are encrypted.
+
+-G S pranav
