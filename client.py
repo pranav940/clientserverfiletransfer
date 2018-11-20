@@ -42,70 +42,75 @@ def validate_ip(address):
     return valid
 
 
-def create_socket(server_name, server_port, *args):
+def create_socket(server_name, server_port):
     # Define the socket
-    if len(args) == 1:
-        func = args[0]
-    elif len(args) == 2:
-        func = args[0]
-        file_name = args[1]
-    else:
-        sys.exit("Invalid command")
-
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    client_socket.connect((server_name, server_port))
-    if func == "-get" or func == "-put":
-        client_socket.send(func.encode('utf8'))
-        sleep(0.05)
-        client_socket.send(file_name.encode('utf8'))
-
-        if func == '-get':
-            flag = client_socket.recv(2048)
-            if flag.decode('utf8') == "Found":
-                with open(file_name, 'wb') as file:
-                    while True:
-                        print('receiving data....')
-                        data = client_socket.recv(32)
-                        data = do_decrypt(data)
-                        if not data:
-                            break
-                        file.write(data)
-                file.close()
-                print("Successfully transferred file")
-            elif flag.decode('utf8') == "notFound":
-                logs.info("Sorry file not found in server!")
-            elif flag.decode('utf8') == "notAuthorised":
-                logs.info("Sorry! You are not authorised to download this file")
-        elif func == '-put':
-            try:
-                f = open(file_name, 'rb')
-                line = f.read(32)
-                while line:
-                    line = do_encrypt(line.ljust(32, b'0'))
-                    print("Sending data......")
-                    client_socket.send(line)
-                    line = f.read(32)
-                f.close()
-                print("Done Sending")
-            except FileNotFoundError:
-                logs.info("File not Found!")
+    while True:
+        inp = input("Please enter your input (in the exact format show):\n")
+        ip = inp.split()
+        if len(ip) == 1:
+            func = ip[0]
+        elif len(ip) == 2:
+            func = ip[0]
+            file_name = ip[1]
         else:
             logs.info("Invalid command")
-    elif func == "-list" or func == "-exit":
-        client_socket.send(func.encode('utf8'))
-        if func == "-list":
-            data = client_socket.recv(2048)
-            lst = json.loads(data.decode('utf8'))
-            list_of_files = lst.get("list")
-            print('\nListing all files in the directory:')
-            for item in list_of_files:
-                print("---->  "+item)
+            continue
+
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        client_socket.connect((server_name, server_port))
+        if func == "-get" or func == "-put":
+            client_socket.send(func.encode('utf8'))
+            sleep(0.05)
+            client_socket.send(file_name.encode('utf8'))
+
+            if func == '-get':
+                flag = client_socket.recv(2048)
+                if flag.decode('utf8') == "Found":
+                    with open(file_name, 'wb') as file:
+                        while True:
+                            print('receiving data....')
+                            data = client_socket.recv(32)
+                            data = do_decrypt(data)
+                            if not data:
+                                break
+                            file.write(data)
+                    file.close()
+                    print("Successfully transferred file")
+                elif flag.decode('utf8') == "notFound":
+                    logs.info("Sorry file not found in server!")
+                elif flag.decode('utf8') == "notAuthorised":
+                    logs.info("Sorry! You are not authorised to download this file")
+            elif func == '-put':
+                try:
+                    f = open(file_name, 'rb')
+                    line = f.read(32)
+                    while line:
+                        line = do_encrypt(line.ljust(32, b'0'))
+                        print("Sending data......")
+                        client_socket.send(line)
+                        line = f.read(32)
+                    f.close()
+                    print("Done Sending")
+                except FileNotFoundError:
+                    logs.info("File not Found!")
+            else:
+                logs.info("Invalid command")
+        elif func == "-list" or func == "-exit":
+            client_socket.send(func.encode('utf8'))
+            if func == "-list":
+                data = client_socket.recv(2048)
+                lst = json.loads(data.decode('utf8'))
+                list_of_files = lst.get("list")
+                print('\nListing all files in the directory:')
+                for item in list_of_files:
+                    print("---->  "+item)
+            else:
+                client_socket.shutdown(socket.SHUT_RDWR)
+                print("Shutting down socket")
+                break
         else:
-            client_socket.shutdown(socket.SHUT_RDWR)
-            print("Shutting down socket")
-    else:
-        logs.info("Invalid command")
+            logs.info("Invalid command")
 
     client_socket.close()
     print('Connection closed')
@@ -128,11 +133,4 @@ if __name__ == '__main__':
     print("-put <filename>: Copies file from your directory to server's directory")
     print("-list: Lists all the files in the servers directory")
     print("-exit: Smoothly exits and free up all sockets")
-    inp = input("Please enter your input (in the exact format show):\n")
-    ip = inp.split()
-    if len(ip) == 1:
-        create_socket(server_name, server_port, ip[0])
-    elif len(ip) == 2:
-        create_socket(server_name, server_port, ip[0], ip[1])
-    else:
-        sys.exit("Invalid command")
+    create_socket(server_name, server_port)

@@ -67,9 +67,6 @@ def create_socket(server_name, server_port):
                             line = f.read(32)
                             while line:
                                 line = do_encrypt(line.ljust(16, b'0'))
-                                with open("encrypt.txt", 'wb') as f:
-                                    f.write(line)
-                                    f.close()
                                 print("Sending data......")
                                 conn.send(line)
                                 line = f.read(32)
